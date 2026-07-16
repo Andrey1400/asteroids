@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Asteroids Mobile</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            background: #0d0d13;
+            overflow: hidden;
+            font-family: sans-serif;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            /* Evita scroll acidental no mobile */
+            touch-action: none; 
+        }
+        canvas {
+            background: #050508;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            /* Importante para o toque funcionar sem bugar a tela */
+            touch-action: none; 
+        }
+        /* Menu de Power-up */
+        #powerup-screen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #00ffcc;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10;
+        }
+        .btn-powerup {
+            display: block;
+            width: 200px;
+            padding: 12px;
+            margin: 10px auto;
+            background: #222;
+            color: #00ffcc;
+            border: 1px solid #00ffcc;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .btn-powerup:active {
+            background: #00ffcc;
+            color: #222;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Tela de escolha de Power-up -->
+    <div id="powerup-screen">
+        <h2>Level Up!</h2>
+        <p>Você atingiu +1000 pontos!</p>
+        <button class="btn-powerup" onclick="choosePowerUp('fast')">Balas Rápidas</button>
+        <button class="btn-powerup" onclick="choosePowerUp('pierce')">Balas Perfurantes</button>
+        <button class="btn-powerup" onclick="choosePowerUp('double')">Balas Duplas</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Ajusta o canvas para o tamanho base da tela do celular (proporção 9:16)
+        const targetWidth = 450;
+        const targetHeight = 800;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        // Redimensionamento responsivo
+        function resizeCanvas() {
+            const scale = Math.min(window.innerWidth / targetWidth, window.innerHeight / targetHeight);
+            canvas.style.width = (targetWidth * scale) + "px";
+            canvas.style.height = (targetHeight * scale) + "px";
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- CARREGAMENTO DE SPRITES ---
+        // (Deixe as imagens na pasta 'assets' ou altere o caminho aqui)
+        const spriteNave = new Image();
+        spriteNave.src = 'assets/nave.png'; 
+
+        const spriteAsteroide = new Image();
+        spriteAsteroide.src = 'assets/asteroide.png';
+
+        const spriteProjetil = new Image();
+        spriteProjetil.src = 'assets/projetil.png';
+
+        // --- ESTADO DO JOGO ---
+        let score = 0;
+        let lastPowerUpScore = 0;
+        let gameOver = false;
+        let gamePaused = false;
+
+        const powerUps = {
+            fastBullets: false,
+            piercingBullets: false,
+            doubleBullets: false
+        };
+
+        // --- ENTIDADES ---
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 100,
+            width: 50,
+            height: 50,
+            shootCooldown: 0,
+            baseCooldown: 20 // Quadros entre os tiros automáticos
+        };
+
+        const bullets = [];
+        const asteroids = [];
+
+        // --- CONTROLES (MOUSE & TOUCH) ---
+        let isDragging = false;
+
+        function moveShip(clientX) {
+            const rect = canvas.getBoundingClientRect();
+            // Calcula a posição proporcional ao tamanho real do canvas
+            const scaleX = canvas.width / rect.width;
+            const pointerX = (clientX - rect.left) * scaleX;
+            
+            // Centraliza a nave horizontalmente no dedo/mouse
+            player.x = pointerX - player.width / 2;
+            
+            // Limita a nave dentro da tela
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+        }
+
+        // Suporte para Celular (Touch)
+        canvas.addEventListener('touchstart', (e) => {
+            if (gameOver) {
+                resetGame();
+                return;
+            }
+            isDragging = true;
+            moveShip(e.touches[0].clientX);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (isDragging && !gamePaused && !gameOver) {
+                e.preventDefault(); 
+                moveShip(e.touches[0].clientX);
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Suporte para PC (Mouse)
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameOver) {
+                resetGame();
+                return;
+            }
+            isDragging = true;
+            moveShip(e.clientX);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging && !gamePaused && !gameOver) {
+                moveShip(e.clientX);
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // --- LÓGICA DE TIRO ---
+        function fireBullet() {
+            if (player.shootCooldown > 0) return;
+
+            let bulletSpeed = powerUps.fastBullets ? 16 : 8;
+            let pierceCount = powerUps.piercingBullets ? 3 : 1; 
+            let currentCooldown = powerUps.fastBullets ? player.baseCooldown / 2 : player.baseCooldown;
+
+            if (powerUps.doubleBullets) {
+                // Tiro duplo
+                bullets.push({ x: player.x + 5, y: player.y, width: 6, height: 15, speed: bulletSpeed, pierce: pierceCount });
+                bullets.push({ x: player.x + player.width - 11, y: player.y, width: 6, height: 15, speed: bulletSpeed, pierce: pierceCount });
+            } else {
+                // Tiro único
+                bullets.push({ x: player.x + player.width / 2 - 3, y: player.y, width: 6, height: 15, speed: bulletSpeed, pierce: pierceCount });
+            }
+
+            player.shootCooldown = currentCooldown;
+        }
+
+        // --- SPAWN DE ASTEROIDES ---
+        let asteroidSpawnTimer = 0;
+        function spawnAsteroid() {
+            asteroidSpawnTimer++;
+            // Dificuldade progressiva leve: quanto maior o score, mais rápido surgem
+            let spawnRate = Math.max(30, 60 - Math.floor(score / 500)); 
+
+            if (asteroidSpawnTimer > spawnRate) { 
+                let size = Math.random() * (60 - 35) + 35;
+                // Hp do asteroide vai aumentando com a pontuação
+                let maxHpBase = 3 + Math.floor(score / 1500);
+                let hp = Math.floor(Math.random() * maxHpBase) + 1; 
+                
+                asteroids.push({
+                    x: Math.random() * (canvas.width - size),
+                    y: -size,
+                    width: size,
+                    height: size,
+                    speed: Math.random() * (4 - 1.5) + 1.5 + (score / 5000), // Aumenta a velocidade
+                    hp: hp,
+                    maxHp: hp
+                });
+                asteroidSpawnTimer = 0;
+            }
+        }
+
+        // --- SISTEMA DE POWER-UP ---
+        function checkPowerUpMilestone() {
+            if (score - lastPowerUpScore >= 1000) {
+                lastPowerUpScore += 1000;
+                triggerPowerUpMenu();
+            }
+        }
+
+        function triggerPowerUpMenu() {
+            gamePaused = true;
+            document.getElementById('powerup-screen').style.display = 'block';
+        }
+
+        function choosePowerUp(type) {
+            if (type === 'fast') powerUps.fastBullets = true;
+            if (type === 'pierce') powerUps.piercingBullets = true;
+            if (type === 'double') powerUps.doubleBullets = true;
+
+            document.getElementById('powerup-screen').style.display = 'none';
+            gamePaused = false;
+            
+            // Libera as teclas/arraste para não travar
+            isDragging = false; 
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- REINICIAR JOGO ---
+        function resetGame() {
+            gameOver = false;
+            score = 0;
+            lastPowerUpScore = 0;
+            asteroids.length = 0;
+            bullets.length = 0;
+            powerUps.fastBullets = false;
+            powerUps.piercingBullets = false;
+            powerUps.doubleBullets = false;
+            player.x = canvas.width / 2 - 25;
+            isDragging = false;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- LOOP PRINCIPAL DO JOGO ---
+        function update() {
+            if (gamePaused || gameOver) return;
+
+            // Atirar automaticamente
+            if (player.shootCooldown > 0) player.shootCooldown--;
+            fireBullet();
+
+            // Atualizar Projéteis
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= bullets[i].speed;
+                if (bullets[i].y < 0) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Atualizar Asteroides
+            spawnAsteroid();
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                let ast = asteroids[i];
+                ast.y += ast.speed;
+
+                // Hitbox um pouco menor para a colisão não ser injusta
+                let hitMargin = 10;
+                
+                // Colisão do Asteroide com a Nave (Game Over)
+                if (
+                    ast.x + hitMargin < player.x + player.width - hitMargin &&
+                    ast.x + ast.width - hitMargin > player.x + hitMargin &&
+                    ast.y + hitMargin < player.y + player.height - hitMargin &&
+                    ast.y + ast.height - hitMargin > player.y + hitMargin
+                ) {
+                    gameOver = true;
+                }
+
+                // Remove se sair da tela
+                if (ast.y > canvas.height) {
+                    asteroids.splice(i, 1);
+                    continue;
+                }
+
+                // Colisão Balas vs Asteroide
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    let b = bullets[j];
+                    if (
+                        b.x < ast.x + ast.width &&
+                        b.x + b.width > ast.x &&
+                        b.y < ast.y + ast.height &&
+                        b.y + b.height > ast.y
+                    ) {
+                        ast.hp--; // Perde 1 de vida
+                        b.pierce--; // Bala perde poder de perfuração
+
+                        if (b.pierce <= 0) {
+                            bullets.splice(j, 1);
+                        }
+
+                        // Destrói asteroide
+                        if (ast.hp <= 0) {
+                            score += ast.maxHp * 50; 
+                            asteroids.splice(i, 1);
+                            checkPowerUpMilestone();
+                            break; // Asteroide foi destruído, sai do loop de balas
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            // Limpa a tela
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenha a Nave
+            if (spriteNave.complete && spriteNave.naturalWidth !== 0) {
+                ctx.drawImage(spriteNave, player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = '#00ffcc';
+                ctx.beginPath();
+                ctx.moveTo(player.x + player.width / 2, player.y);
+                ctx.lineTo(player.x, player.y + player.height);
+                ctx.lineTo(player.x + player.width, player.y + player.height);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Desenha as Balas
+            ctx.fillStyle = '#ff0055';
+            bullets.forEach(b => {
+                if (spriteProjetil.complete && spriteProjetil.naturalWidth !== 0) {
+                    ctx.drawImage(spriteProjetil, b.x, b.y, b.width, b.height);
+                } else {
+                    ctx.fillRect(b.x, b.y, b.width, b.height);
+                }
+            });
+
+            // Desenha os Asteroides
+            asteroids.forEach(ast => {
+                if (spriteAsteroide.complete && spriteAsteroide.naturalWidth !== 0) {
+                    ctx.drawImage(spriteAsteroide, ast.x, ast.y, ast.width, ast.height);
+                } else {
+                    ctx.fillStyle = '#555';
+                    ctx.beginPath();
+                    ctx.arc(ast.x + ast.width/2, ast.y + ast.height/2, ast.width/2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Desenha o HP/Número
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 18px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // Adiciona uma sombrinha no texto para ler melhor em cima da imagem
+                ctx.shadowColor = "black";
+                ctx.shadowBlur = 4;
+                ctx.fillText(ast.hp, ast.x + ast.width / 2, ast.y + ast.height / 2);
+                ctx.shadowBlur = 0; // reseta sombra
+            });
+
+            // UI - Pontuação
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 22px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 20, 40);
+
+            // UI - Game Over
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0,0,0,0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#ff3333';
+                ctx.font = 'bold 40px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '20px sans-serif';
+                ctx.fillText(`Pontuação Final: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+                ctx.font = '16px sans-serif';
+                ctx.fillText('Clique ou toque para reiniciar', canvas.width / 2, canvas.height / 2 + 70);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            if (!gameOver && !gamePaused) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Inicia o jogo
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
