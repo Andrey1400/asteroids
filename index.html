@@ -12,7 +12,7 @@
             height: 100vh; overflow: hidden;
         }
 
-        #game-container, #menu {
+        #game-container, #menu, #base-container {
             width: 100vw; height: 100vh; 
             max-width: calc(100vh * (9 / 16)); 
             max-height: 100vh;
@@ -25,6 +25,13 @@
 
         #game-container {
             display: none; 
+        }
+
+        #base-container {
+            display: none;
+            background: linear-gradient(rgba(0,0,0,0.15), rgba(0,0,0,0.35)), url('assets/mundo_vermelho.png') no-repeat center center;
+            background-size: cover;
+            z-index: 10;
         }
 
         #menu {
@@ -104,6 +111,15 @@
         }
         .btn-play:hover { background: #00ffcc; color: #000; box-shadow: 0 0 30px rgba(0, 255, 204, 0.8); }
 
+        .btn-base {
+            background: #000; border: 4px solid #ff6600; color: #ff6600;
+            padding: 12px 32px; font-size: 18px; font-weight: bold;
+            cursor: pointer; text-transform: uppercase; margin-top: 14px;
+            box-shadow: 0 0 15px rgba(255, 102, 0, 0.3); transition: 0.2s;
+            border-radius: 4px;
+        }
+        .btn-base:hover { background: #ff6600; color: #000; box-shadow: 0 0 30px rgba(255, 102, 0, 0.8); }
+
         .bottom-area {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: linear-gradient(to top, rgba(10,10,15,0.98) 85%, rgba(10,10,15,0) 100%);
@@ -158,9 +174,240 @@
         .btn-up { background: #000; color: #00ffcc; border: 3px solid #00ffcc; padding: 2px 10px; cursor: pointer; font-weight: bold; font-size: 13px; }
         .btn-up:disabled { color: #555; border-color: #555; cursor: not-allowed; }
         .btn-up:hover:not(:disabled) { background: #00ffcc; color: #000; }
+
         .locked-box { display: flex; justify-content: center; align-items: center; height: 100%; margin-top: 10px; }
 
         .hidden { display: none !important; }
+
+        /* --- PAINEL DE MELHORIAS (CONSTRUÇÕES) --- */
+        .improvements-panel {
+            position: absolute;
+            right: -280px;
+            top: 0;
+            width: 280px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            border-left: 4px solid #ff6600;
+            z-index: 20;
+            transition: right 0.3s ease-out;
+            overflow-y: auto;
+            flex-direction: column;
+            display: flex;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .improvements-panel.active {
+            right: 0;
+        }
+
+        .improvements-header {
+            background: linear-gradient(135deg, #ff6600, #ff8833);
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            border-bottom: 2px solid #ff6600;
+        }
+
+        .improvements-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .improvements-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .improvements-content::-webkit-scrollbar-track {
+            background: rgba(255, 102, 0, 0.1);
+        }
+
+        .improvements-content::-webkit-scrollbar-thumb {
+            background: #ff6600;
+            border-radius: 3px;
+        }
+
+        .building-item {
+            background: rgba(20, 20, 30, 0.8);
+            border: 2px solid #ff6600;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .building-item:hover:not(.disabled) {
+            background: rgba(255, 102, 0, 0.2);
+            transform: translateX(-5px);
+            box-shadow: 0 0 15px rgba(255, 102, 0, 0.4);
+        }
+
+        .building-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #555;
+        }
+
+        .building-name {
+            color: #ff6600;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .building-desc {
+            color: #aaa;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        .building-price {
+            color: #ffeb3b;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .building-btn {
+            width: 100%;
+            background: #ff6600;
+            border: none;
+            color: #000;
+            padding: 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 12px;
+        }
+
+        .building-btn:hover:not(:disabled) {
+            background: #ff8833;
+            transform: scale(1.05);
+        }
+
+        .building-btn:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .toggle-improvements-btn {
+            position: absolute;
+            right: 15px;
+            top: 70px;
+            z-index: 19;
+            background: #ff6600;
+            border: none;
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 12px;
+        }
+
+        .toggle-improvements-btn:hover {
+            background: #ff8833;
+            transform: scale(1.1);
+        }
+
+        .toggle-improvements-btn.active {
+            background: #00ffcc;
+            color: #000;
+        }
+
+        /* --- TELA DA BASE (CONSTRUÇÃO VISUAL COM DRAG-AND-DROP) --- */
+        .base-buildings-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2;
+        }
+
+        .building-instance {
+            position: absolute;
+            width: 24%;
+            aspect-ratio: 1 / 1;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            touch-action: none;
+            z-index: 3;
+        }
+        .building-instance.dragging {
+            cursor: grabbing;
+            z-index: 15;
+            filter: drop-shadow(0 0 14px rgba(0, 255, 204, 0.9));
+        }
+        .building-instance img {
+            width: 100%; height: 100%; object-fit: contain;
+            filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.6));
+            pointer-events: none;
+            -webkit-user-drag: none;
+            user-select: none;
+        }
+
+        .btn-back-base {
+            position: absolute; left: 15px; top: 15px; z-index: 19;
+            background: #000; border: 3px solid #00ffcc; color: #00ffcc;
+            padding: 10px 15px; border-radius: 4px; font-weight: bold; cursor: pointer;
+            font-size: 12px; transition: 0.2s;
+        }
+        .btn-back-base:hover { background: #00ffcc; color: #000; }
+
+        .base-currency-display {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            z-index: 19; font-size: 16px; font-weight: bold; padding: 6px 14px;
+            background: rgba(0,0,0,0.85); border-radius: 6px; font-family: Arial, sans-serif;
+            color: #ffeb3b; border: 3px solid #ffeb3b; box-shadow: 0 0 10px rgba(255, 235, 59, 0.3);
+        }
+
+        .toggle-build-btn {
+            position: absolute; right: 15px; top: 15px; z-index: 19;
+            background: #ff6600; border: none; color: #000;
+            padding: 10px 15px; border-radius: 4px; font-weight: bold; cursor: pointer;
+            transition: 0.3s; font-size: 12px;
+        }
+        .toggle-build-btn:hover { background: #ff8833; transform: scale(1.1); }
+        .toggle-build-btn.active { background: #00ffcc; color: #000; }
+
+        .build-panel {
+            position: absolute; right: -280px; top: 0; width: 280px; height: 100%;
+            background: rgba(0, 0, 0, 0.95); border-left: 4px solid #ff6600; z-index: 20;
+            transition: right 0.3s ease-out; overflow-y: auto;
+            display: flex; flex-direction: column;
+            box-shadow: -5px 0 20px rgba(0, 0, 0, 0.8);
+        }
+        .build-panel.active { right: 0; }
+
+        .build-header {
+            background: linear-gradient(135deg, #ff6600, #ff8833); color: #fff;
+            padding: 15px; text-align: center; font-weight: bold; font-size: 18px;
+            border-bottom: 2px solid #ff6600;
+        }
+
+        .build-content { flex: 1; padding: 15px; overflow-y: auto; }
+
+        .build-item {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(20, 20, 30, 0.8); border: 2px solid #ff6600; border-radius: 6px;
+            padding: 10px; margin-bottom: 12px;
+        }
+        .build-item-thumb {
+            width: 48px; height: 48px; object-fit: contain; flex-shrink: 0;
+        }
+        .build-item-info { flex: 1; min-width: 0; }
+        .build-item-name { color: #ff6600; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .build-item-price { color: #ffeb3b; font-weight: bold; font-size: 12px; }
+        .build-item-btn {
+            background: #ff6600; border: none; color: #000; padding: 8px 10px;
+            border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 11px;
+            flex-shrink: 0; transition: 0.2s;
+        }
+        .build-item-btn:hover:not(:disabled) { background: #ff8833; transform: scale(1.05); }
+        .build-item-btn:disabled { background: #555; color: #999; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -185,6 +432,7 @@
     
     <div class="center-area">
         <button id="btnPlay" class="btn-play" onclick="startGame()">▶ FASE 1</button>
+        <button id="btnBase" class="btn-base" onclick="openBase()">🏗️ BASE</button>
     </div>
 
     <div class="bottom-area">
@@ -197,6 +445,27 @@
 <div id="game-container">
     <canvas id="gameCanvas" width="1080" height="1920"></canvas>
     <div id="explosions-layer"></div>
+    
+    <!-- PAINEL DE MELHORIAS -->
+    <button class="toggle-improvements-btn" onclick="toggleImprovementsPanel()">🔧 MELHORIAS</button>
+    
+    <div class="improvements-panel" id="improvementsPanel">
+        <div class="improvements-header">⚔️ MELHORIAS DA BASE</div>
+        <div class="improvements-content" id="improvementsContent"></div>
+    </div>
+</div>
+
+<div id="base-container">
+    <div class="base-buildings-layer" id="baseBuildingsLayer"></div>
+
+    <button class="btn-back-base" onclick="closeBase()">⬅ VOLTAR</button>
+    <div class="base-currency-display">💰 <span id="coinCountBase">0</span></div>
+    <button class="toggle-build-btn" onclick="toggleBuildPanel()">🏗️ CONSTRUIR</button>
+
+    <div class="build-panel" id="buildPanel">
+        <div class="build-header">🏗️ CONSTRUÇÕES</div>
+        <div class="build-content" id="buildContent"></div>
+    </div>
 </div>
 
 <script>
@@ -218,6 +487,270 @@
     const audioExplosao = new Audio('assets/explosao.mp3');
     const audioDano = new Audio('assets/dano.mp3');
     const audioClick = new Audio('assets/click.mp3');
+
+    // ========== SISTEMA DE CONSTRUÇÕES ==========
+    const BUILDINGS = {
+        centro: { 
+            name: 'Centro de Comando', 
+            desc: 'Aumenta resistência em 2 HP',
+            price: 200, 
+            effect: () => { player.maxHealth += 2; player.health += 2; },
+            icon: '🏛️'
+        },
+        abrigo: { 
+            name: 'Abrigo', 
+            desc: 'Restaura 3 HP',
+            price: 150, 
+            effect: () => { player.health = Math.min(player.health + 3, player.maxHealth); },
+            icon: '🏠'
+        },
+        fabrica: { 
+            name: 'Fábrica de Munição', 
+            desc: 'Aumenta dano em 20%',
+            price: 250, 
+            effect: () => { 
+                currentShip.baseDmg = Math.round(currentShip.baseDmg * 1.2);
+                currentShip.actDmg = Math.round(currentShip.actDmg * 1.2);
+            },
+            icon: '🏭'
+        }
+    };
+
+    function toggleImprovementsPanel() {
+        const panel = document.getElementById('improvementsPanel');
+        const btn = document.querySelector('.toggle-improvements-btn');
+        panel.classList.toggle('active');
+        btn.classList.toggle('active');
+    }
+
+    function renderImprovementsPanel() {
+        const content = document.getElementById('improvementsContent');
+        content.innerHTML = '';
+
+        Object.keys(BUILDINGS).forEach(key => {
+            const building = BUILDINGS[key];
+            const canBuy = coins >= building.price;
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `building-item ${!canBuy ? 'disabled' : ''}`;
+            
+            itemDiv.innerHTML = `
+                <div class="building-name">${building.icon} ${building.name}</div>
+                <div class="building-desc">${building.desc}</div>
+                <div class="building-price">💰 ${building.price}</div>
+                <button class="building-btn" 
+                    onclick="buyBuilding('${key}')" 
+                    ${!canBuy ? 'disabled' : ''}>
+                    COMPRAR
+                </button>
+            `;
+            
+            content.appendChild(itemDiv);
+        });
+    }
+
+    function buyBuilding(buildingKey) {
+        const building = BUILDINGS[buildingKey];
+        
+        if (coins < building.price) {
+            alert('Moedas insuficientes!');
+            return;
+        }
+
+        coins -= building.price;
+        coinCountEl.innerText = coins;
+        building.effect();
+        renderImprovementsPanel();
+        
+        // Feedback visual
+        const panel = document.getElementById('improvementsPanel');
+        panel.style.borderLeftColor = '#00ff00';
+        setTimeout(() => {
+            panel.style.borderLeftColor = '#ff6600';
+        }, 300);
+    }
+
+    // ========== SISTEMA DE BASE VISUAL (TELA INICIAL) ==========
+    const baseContainerEl = document.getElementById('base-container');
+    const baseBuildingsLayer = document.getElementById('baseBuildingsLayer');
+    const coinCountBaseEl = document.getElementById('coinCountBase');
+
+    const BASE_BUILDINGS_CATALOG = {
+        centro: { name: 'Centro de Comando', price: 300, img: 'assets/centro.png' },
+        abrigo: { name: 'Abrigo', price: 200, img: 'assets/abrigo.png' },
+        fabrica: { name: 'Fábrica', price: 350, img: 'assets/fabrica.png' }
+    };
+
+    let baseBuildings = []; // { id, type, x, y } -> x/y em % do container (posição do CENTRO da construção)
+    let baseBuildingCounter = 0;
+
+    const BUILDING_W_PCT = 24; // largura da construção em % da largura da base
+    const BUILDING_H_PCT = BUILDING_W_PCT * (9 / 16); // altura equivalente em % da altura (base é 9:16, mantém quadrado real na tela)
+
+    function openBase() {
+        tocarSom(audioClick, 0.3);
+        menu.classList.add('hidden');
+        baseContainerEl.style.display = 'flex';
+        coinCountBaseEl.innerText = coins;
+        renderBuildPanel();
+    }
+
+    function closeBase() {
+        tocarSom(audioClick, 0.3);
+        document.getElementById('buildPanel').classList.remove('active');
+        document.querySelector('.toggle-build-btn').classList.remove('active');
+        baseContainerEl.style.display = 'none';
+        menu.classList.remove('hidden');
+    }
+
+    function toggleBuildPanel() {
+        const panel = document.getElementById('buildPanel');
+        const btn = document.querySelector('.toggle-build-btn');
+        panel.classList.toggle('active');
+        btn.classList.toggle('active');
+    }
+
+    function renderBuildPanel() {
+        const content = document.getElementById('buildContent');
+        content.innerHTML = '';
+
+        Object.keys(BASE_BUILDINGS_CATALOG).forEach(key => {
+            const b = BASE_BUILDINGS_CATALOG[key];
+            const canBuy = coins >= b.price;
+
+            const item = document.createElement('div');
+            item.className = 'build-item';
+            item.innerHTML = `
+                <img class="build-item-thumb" src="${b.img}" alt="${b.name}">
+                <div class="build-item-info">
+                    <div class="build-item-name">${b.name}</div>
+                    <div class="build-item-price">💰 ${b.price}</div>
+                </div>
+                <button class="build-item-btn" onclick="buyBaseBuilding('${key}')" ${!canBuy ? 'disabled' : ''}>CONSTRUIR</button>
+            `;
+            content.appendChild(item);
+        });
+    }
+
+    // Verifica se a posição (x,y) colide com alguma construção já existente (exceto a própria, ao arrastar)
+    function hasCollision(x, y, ignoreId) {
+        for (const b of baseBuildings) {
+            if (b.id === ignoreId) continue;
+            if (Math.abs(b.x - x) < BUILDING_W_PCT && Math.abs(b.y - y) < BUILDING_H_PCT) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Acha um espaço livre em grade para posicionar uma construção recém-comprada
+    function findFreeSpot() {
+        const halfX = BUILDING_W_PCT / 2;
+        const halfY = BUILDING_H_PCT / 2;
+        const marginX = 8, marginY = 6;
+        const gapX = 6, gapY = 5;
+
+        for (let row = 0; row < 5; row++) {
+            for (let col = 0; col < 3; col++) {
+                const x = marginX + halfX + col * (BUILDING_W_PCT + gapX);
+                const y = marginY + halfY + row * (BUILDING_H_PCT + gapY);
+                if (x + halfX <= 100 - marginX && y + halfY <= 100 - marginY && !hasCollision(x, y, null)) {
+                    return { x, y };
+                }
+            }
+        }
+        return { x: 50, y: 50 }; // fallback caso a base esteja muito cheia
+    }
+
+    function buyBaseBuilding(type) {
+        const b = BASE_BUILDINGS_CATALOG[type];
+        if (coins < b.price) {
+            alert('Moedas insuficientes!');
+            return;
+        }
+
+        coins -= b.price;
+        coinCountEl.innerText = coins;
+        coinCountBaseEl.innerText = coins;
+        tocarSom(audioClick, 0.6);
+
+        const spot = findFreeSpot();
+        baseBuildingCounter++;
+        baseBuildings.push({ id: 'b' + baseBuildingCounter, type, x: spot.x, y: spot.y });
+
+        renderBaseBuildings();
+        renderBuildPanel();
+    }
+
+    function renderBaseBuildings() {
+        baseBuildingsLayer.innerHTML = '';
+        baseBuildings.forEach(b => {
+            const el = document.createElement('div');
+            el.className = 'building-instance';
+            el.style.left = b.x + '%';
+            el.style.top = b.y + '%';
+            el.dataset.id = b.id;
+
+            const img = document.createElement('img');
+            img.src = BASE_BUILDINGS_CATALOG[b.type].img;
+            img.alt = BASE_BUILDINGS_CATALOG[b.type].name;
+            el.appendChild(img);
+
+            attachDragHandlers(el, b);
+            baseBuildingsLayer.appendChild(el);
+        });
+    }
+
+    // Drag-and-drop via Pointer Events (funciona com mouse e toque)
+    function attachDragHandlers(el, buildingData) {
+        let dragging = false;
+        let lastValidX = buildingData.x;
+        let lastValidY = buildingData.y;
+
+        el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            dragging = true;
+            lastValidX = buildingData.x;
+            lastValidY = buildingData.y;
+            el.classList.add('dragging');
+            el.setPointerCapture(e.pointerId);
+        });
+
+        el.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const rect = baseBuildingsLayer.getBoundingClientRect();
+            const halfX = BUILDING_W_PCT / 2;
+            const halfY = BUILDING_H_PCT / 2;
+
+            let px = ((e.clientX - rect.left) / rect.width) * 100;
+            let py = ((e.clientY - rect.top) / rect.height) * 100;
+
+            px = Math.max(halfX, Math.min(100 - halfX, px));
+            py = Math.max(halfY, Math.min(100 - halfY, py));
+
+            buildingData.x = px;
+            buildingData.y = py;
+            el.style.left = px + '%';
+            el.style.top = py + '%';
+        });
+
+        function endDrag() {
+            if (!dragging) return;
+            dragging = false;
+            el.classList.remove('dragging');
+
+            // Se soltou em cima de outra construção, volta para a última posição válida
+            if (hasCollision(buildingData.x, buildingData.y, buildingData.id)) {
+                buildingData.x = lastValidX;
+                buildingData.y = lastValidY;
+                el.style.left = lastValidX + '%';
+                el.style.top = lastValidY + '%';
+            }
+        }
+
+        el.addEventListener('pointerup', endDrag);
+        el.addEventListener('pointercancel', endDrag);
+    }
 
     function tocarSom(som, volume = 1.0) {
         let clone = som.cloneNode(); 
@@ -241,7 +774,7 @@
 
     const images = { naves: [], tiros: [], meteoro: new Image(), resgate: new Image() };
     images.meteoro.src = 'assets/meteoro.png';
-    images.resgate.src = 'assets/resgate.png'; // Nova imagem de resgate
+    images.resgate.src = 'assets/resgate.png';
 
     shipsConfig.forEach((cfg, i) => {
         let nImg = new Image(); nImg.src = cfg.imgNave; images.naves[i] = nImg;
@@ -267,11 +800,12 @@
     let bossSpawned = false; let spawnTimer = 0; let currentSpawnInterval = 1200; 
     let lastShootTime = 0; let meteorCounter = 0; let lastFrameTime = 0; let lastTapTime = 0;
     
-    let resgateSpawnTimes = []; // Guarda os tempos exatos em que os resgates vão nascer
+    let resgateSpawnTimes = [];
 
     function atualizarMoedas(valor) {
         coins += valor;
         coinCountEl.innerText = coins;
+        renderImprovementsPanel(); // Atualiza painel quando moedas mudam
     }
 
     function atualizarGemas(valor) {
@@ -324,106 +858,81 @@
         });
 
         let actionHtml = '';
-        if (!ship.unlocked) {
+        if (shipsConfig[selectedShipIndex].unlocked) {
+            let isEquipped = selectedShipIndex === equippedShipIndex;
+            let equipBtnText = isEquipped ? '✓ EQUIPADA' : 'EQUIPAR';
+            let equipBtnStyle = isEquipped ? 'equipped-status' : 'btn-equip';
+            
             actionHtml = `
-                <div class="locked-box">
-                    <button class="btn-buy" onclick="comprarNave(${selectedShipIndex})">COMPRAR NAVE - 💰 ${ship.price}</button>
+                <div class="${equipBtnStyle}">${equipBtnText}</div>
+                <div class="stat-row">
+                    <div class="stat-header">
+                        <span class="stat-name">⚡ VELOCIDADE</span>
+                        <span class="stat-name">${shipsConfig[selectedShipIndex].activeInterval}ms</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        ${'<div class="progress-block active"></div>'.repeat(Math.max(1, Math.round(10 - shipsConfig[selectedShipIndex].activeInterval / 100)))}
+                        ${'<div class="progress-block"></div>'.repeat(Math.max(1, Math.round(shipsConfig[selectedShipIndex].activeInterval / 100)))}
+                    </div>
                 </div>
             `;
-        } else {
+
             if (selectedShipIndex !== equippedShipIndex) {
-                actionHtml += `<button class="btn-equip" onclick="equiparNave(${selectedShipIndex})">EQUIPAR NAVE</button>`;
-            } else {
-                actionHtml += `<div class="equipped-status">✓ NAVE EQUIPADA</div>`;
+                actionHtml += `<button class="btn-equip" onclick="equipShip(${selectedShipIndex})">EQUIPAR</button>`;
             }
-            
-            const upData = [
-                { id: 'hp', nome: 'Vida Máxima' },
-                { id: 'cooldown', nome: 'Vel. Recarga' },
-                { id: 'power', nome: 'Poder Especial' }
-            ];
-
-            upData.forEach(up => {
-                let nivel = ship.upgrades[up.id];
-                let custo = nivel < 5 ? (nivel + 1) * 50 : "MAX";
-                let dis = (nivel >= 5 || coins < custo) ? "disabled" : "";
-                let txtCusto = nivel >= 5 ? "MÁX" : `💰 ${custo}`;
-
-                let barHtml = `<div class="progress-bar-container">`;
-                for(let i=0; i<5; i++) {
-                    barHtml += `<div class="progress-block ${i < nivel ? 'active' : ''}"></div>`;
-                }
-                barHtml += `</div>`;
-
-                actionHtml += `
-                    <div class="stat-row">
-                        <div class="stat-header">
-                            <span class="stat-name">${up.nome}</span>
-                            <button class="btn-up" ${dis} onclick="fazerUpgrade('${up.id}', ${custo})">${txtCusto}</button>
-                        </div>
-                        ${barHtml}
-                    </div>
-                `;
-            });
+        } else {
+            let ship = shipsConfig[selectedShipIndex];
+            actionHtml = `<button class="btn-buy" onclick="buyShip(${selectedShipIndex})">COMPRAR POR ${ship.price} 💰</button>`;
         }
+
         shipActionDiv.innerHTML = actionHtml;
     }
 
-    function equiparNave(index) { tocarSom(audioClick, 0.7); equippedShipIndex = index; renderMenu(); }
-
-    function comprarNave(index) {
-        tocarSom(audioClick, 0.7); 
-        let ship = shipsConfig[index];
-        if (coins >= ship.price) {
-            atualizarMoedas(-ship.price); ship.unlocked = true; equippedShipIndex = index; renderMenu();
-        } else { alert("Moedas insuficientes!"); }
+    function equipShip(index) {
+        equippedShipIndex = index;
+        currentShip = shipsConfig[index];
+        tocarSom(audioClick, 0.5);
+        renderMenu();
     }
 
-    function fazerUpgrade(tipo, custo) {
-        tocarSom(audioClick, 0.7); 
-        let ship = shipsConfig[selectedShipIndex];
-        if (ship.upgrades[tipo] < 5 && coins >= custo) {
-            atualizarMoedas(-custo); ship.upgrades[tipo]++; renderMenu();
+    function buyShip(index) {
+        let ship = shipsConfig[index];
+        if (coins >= ship.price) {
+            coins -= ship.price;
+            coinCountEl.innerText = coins;
+            ship.unlocked = true;
+            tocarSom(audioClick, 0.5);
+            renderMenu();
+        } else {
+            alert("Moedas insuficientes!");
         }
     }
 
-    renderMenu();
-
     function startGame() {
-        tocarSom(audioClick, 1.0); 
-        currentShip = shipsConfig[equippedShipIndex];
+        tocarSom(audioClick, 0.3);
+        isPlaying = true;
+        gameOver = false;
+        victory = false;
         menu.classList.add("hidden");
-        gameContainer.style.display = "block";
-        
-        let upHP = currentShip.upgrades.hp;         
-        let upCD = currentShip.upgrades.cooldown;   
-        let upPW = currentShip.upgrades.power;      
+        gameContainer.style.display = "flex";
 
-        player.maxHealth = 10 + (upHP * 2);             
-        player.cooldownDuration = 7000 - (upCD * 800);  
-        player.powerDuration = 5000 + (upPW * 1000);    
-        
+        currentShip = JSON.parse(JSON.stringify(shipsConfig[equippedShipIndex]));
         player.health = player.maxHealth;
-        player.x = canvas.width/2 - player.w/2;
-        player.powerState = 'ready';
-        player.powerTimer = 0;
-        damageFlashAlpha = 0;
-        
-        let baseInterval = 1200 * Math.pow(0.85, currentPhase - 1);
-        currentSpawnInterval = Math.max(180, baseInterval / difficultyMultiplier); 
-        
-        phaseTimer = 0; bossSpawned = false; coinsGanhasNestaFase = 0;
-        meteors = []; bullets = []; gameOver = false; victory = false; isPlaying = true;
+        coinsGanhasNestaFase = 0;
+        phaseTimer = 0;
+        bossSpawned = false;
+        spawnTimer = 0;
+        bullets = [];
+        meteors = [];
         explosionsLayer.innerHTML = ''; 
 
-        // LÓGICA DO RESGATE: Sorteia 1 a 3 resgates para nascer durante a fase
         let numResgates = Math.floor(Math.random() * 3) + 1;
         resgateSpawnTimes = [];
         for(let i=0; i < numResgates; i++) {
-            // Nasce em momentos aleatórios entre os segundos 3 e 40 da fase
             resgateSpawnTimes.push(3000 + Math.random() * (phaseDuration - 6000));
         }
 
+        renderImprovementsPanel(); // Atualiza painel no início do jogo
         lastFrameTime = performance.now();
         requestAnimationFrame(loop);
     }
@@ -460,6 +969,10 @@
 
     function returnToMenu() {
         isPlaying = false; gameContainer.style.display = "none"; menu.classList.remove("hidden");
+        const panel = document.getElementById('improvementsPanel');
+        const btn = document.querySelector('.toggle-improvements-btn');
+        panel.classList.remove('active');
+        btn.classList.remove('active');
         renderMenu(); 
     }
 
@@ -494,7 +1007,6 @@
     function spawnResgate() {
         if (!isPlaying || gameOver || victory) return;
         let size = 180;
-        // Vida do resgate consideravelmente maior para exigir foco do jogador (20 a 35 dependendo da fase)
         let rHP = Math.floor(20 + (currentPhase * 5) * difficultyMultiplier);
         meteors.push({ 
             id: meteorCounter++, x: Math.random() * (canvas.width - size), 
@@ -539,7 +1051,6 @@
         if (!bossSpawned) {
             phaseTimer += dt;
             
-            // Verifica se é hora de nascer um resgate
             for(let i = resgateSpawnTimes.length - 1; i >= 0; i--) {
                 if (phaseTimer >= resgateSpawnTimes[i]) {
                     spawnResgate();
@@ -551,7 +1062,6 @@
             else { spawnTimer += dt; if (spawnTimer >= currentSpawnInterval) { spawnMeteor(); spawnTimer = 0; } }
         }
 
-        // Vitória apenas se o chefe nasceu, todos os inimigos (meteoros, resgates e o chefe) morreram e o jogo não acabou
         if (bossSpawned && meteors.length === 0 && !gameOver && !victory) {
             victory = true; winStreak++; deathCountOnPhase = 0; 
             coinsGanhasNestaFase = 50 + (currentPhase * 25);
@@ -582,59 +1092,65 @@
         }
 
         for (let i = meteors.length - 1; i >= 0; i--) {
-            let m = meteors[i]; m.y += m.speed;
-            
-            if (m.y > canvas.height) { 
-                takeDamage(m.isBoss ? 10 : 1); 
-                meteors.splice(i, 1); 
-                continue; 
+            let m = meteors[i];
+            m.y += m.speed;
+
+            if (m.y > canvas.height) {
+                takeDamage(m.isBoss ? 10 : 1);
+                meteors.splice(i, 1);
+                continue;
             }
-            
-            // Colisão do jogador com inimigo
-            if (m.x < player.x + player.w && m.x + m.w > player.x && m.y < player.y + player.h && m.y + m.h > player.y) {
-                let dano = m.isBoss ? 10 : (m.isResgate ? 3 : 1); // Se bater no resgate perde 3 vidas
-                takeDamage(dano); 
-                
+
+            if (m.x < player.x + player.w && m.x + m.w > player.x && 
+                m.y < player.y + player.h && m.y + m.h > player.y) {
+                let dano = m.isBoss ? 10 : (m.isResgate ? 3 : 1);
+                takeDamage(dano);
+
                 if (!m.isBoss) {
                     showExplosion(m.x, m.y, m.w, m.h);
-                    meteors.splice(i, 1); 
+                    meteors.splice(i, 1);
                 }
                 continue;
             }
 
-            // Colisão dos tiros
             for (let j = bullets.length - 1; j >= 0; j--) {
                 let b = bullets[j];
                 if (b.x < m.x + m.w && b.x + b.w > m.x && b.y < m.y + m.h && b.y + b.h > m.y) {
                     if (b.type === 'piercing' || b.type === 'wave') {
                         if (!b.hitTargets.includes(m.id)) {
-                            m.health -= b.damage; b.hitTargets.push(m.id);
+                            m.health -= b.damage;
+                            b.hitTargets.push(m.id);
                             if (b.type === 'wave') m.y -= m.isBoss ? 25 : 200;
                         }
-                    } else { m.health -= b.damage; bullets.splice(j, 1); }
-                    
-                    if (m.health <= 0) { 
+                    } else {
+                        m.health -= b.damage;
+                        bullets.splice(j, 1);
+                    }
+
+                    if (m.health <= 0) {
                         showExplosion(m.x, m.y, m.w, m.h);
-                        
-                        // RECOMPENSA SE FOR RESGATE DESTRUÍDO COM SUCESSO:
-                        if (m.isResgate) {
-                            atualizarMoedas(50); // Bônus de 50 moedas instantâneo
-                            player.health = Math.min(player.maxHealth, player.health + 2); // Cura 2 vidas
-                        }
-                        
-                        meteors.splice(i, 1); 
-                        break; 
+
+                        if (m.isResgate) atualizarMoedas(50);
+
+                        meteors.splice(i, 1);
+                        break;
                     }
                 }
             }
         }
     }
 
-    function checkGameOver() { 
-        if (player.health <= 0 && !gameOver) { 
-            player.health = 0; gameOver = true; winStreak = 0; deathCountOnPhase++;
-            if (deathCountOnPhase >= 5) { difficultyMultiplier = Math.max(0.5, difficultyMultiplier - 0.10); deathCountOnPhase = 0; }
-        } 
+    function checkGameOver() {
+        if (player.health <= 0 && !gameOver) {
+            player.health = 0;
+            gameOver = true;
+            winStreak = 0;
+            deathCountOnPhase++;
+            if (deathCountOnPhase >= 5) {
+                difficultyMultiplier = Math.max(0.5, difficultyMultiplier - 0.10);
+                deathCountOnPhase = 0;
+            }
+        }
     }
 
     function draw() {
@@ -643,32 +1159,33 @@
         let nImg = images.naves[currentShip.id];
         if (nImg.complete && nImg.naturalHeight !== 0) ctx.drawImage(nImg, player.x, player.y, player.w, player.h);
         else { ctx.fillStyle = "cyan"; ctx.fillRect(player.x, player.y, player.w, player.h); }
-        
+
         ctx.fillStyle = player.health <= 3 ? "#ff4444" : "#00ffff"; 
-        ctx.font = "bold 32px Arial"; ctx.textAlign = "center";
+        ctx.font = "bold 32px Arial"; 
+        ctx.textAlign = "center";
         ctx.fillText("HP: " + player.health + "/" + player.maxHealth, player.x + player.w / 2, player.y - 20);
 
         meteors.forEach(m => {
-            let imgRender;
-            if (m.isResgate) imgRender = images.resgate;
-            else imgRender = images.meteoro;
+            let imgRender = m.isResgate ? images.resgate : images.meteoro;
 
             if (imgRender.complete && imgRender.naturalHeight !== 0) {
                 ctx.drawImage(imgRender, m.x, m.y, m.w, m.h);
-            } else { 
-                ctx.fillStyle = m.isBoss ? "darkred" : (m.isResgate ? "blue" : "orange"); 
-                ctx.fillRect(m.x, m.y, m.w, m.h); 
+            } else {
+                ctx.fillStyle = m.isBoss ? "darkred" : (m.isResgate ? "blue" : "orange");
+                ctx.fillRect(m.x, m.y, m.w, m.h);
             }
-            
-            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+
+            ctx.textAlign = "center"; 
+            ctx.textBaseline = "middle";
             ctx.font = m.isBoss ? "bold 120px Arial" : (m.isResgate ? "bold 75px Arial" : "bold 65px Arial");
-            ctx.lineWidth = 6; ctx.strokeStyle = "#000000"; 
-            
-            // Destaca a cor do número dependendo se for resgate, chefe ou normal
+            ctx.lineWidth = 6; 
+            ctx.strokeStyle = "#000000"; 
             ctx.fillStyle = m.isBoss ? "#ff3333" : (m.isResgate ? "#00e5ff" : "#ffffff"); 
-            
-            let textX = m.x + m.w / 2, textY = m.y + m.h / 2;
-            ctx.strokeText(m.health, textX, textY); ctx.fillText(m.health, textX, textY);
+
+            let textX = m.x + m.w / 2; 
+            let textY = m.y + m.h / 2;
+            ctx.strokeText(m.health, textX, textY); 
+            ctx.fillText(m.health, textX, textY);
         });
 
         let tImg = images.tiros[currentShip.id];
@@ -686,23 +1203,39 @@
             ctx.fillRect(0, canvas.height - gradH, canvas.width, gradH);
         }
 
-        let topBarW = 600, topBarH = 35, topBarX = canvas.width / 2 - topBarW / 2, topBarY = 40;
-        ctx.fillStyle = "rgba(34, 34, 34, 0.8)"; ctx.fillRect(topBarX, topBarY, topBarW, topBarH);
-        ctx.strokeStyle = "#555"; ctx.strokeRect(topBarX, topBarY, topBarW, topBarH);
+        let topBarW = 600; 
+        let topBarH = 35; 
+        let topBarX = canvas.width / 2 - topBarW / 2; 
+        let topBarY = 40;
+        ctx.fillStyle = "rgba(34, 34, 34, 0.8)"; 
+        ctx.fillRect(topBarX, topBarY, topBarW, topBarH);
+        ctx.strokeStyle = "#555"; 
+        ctx.strokeRect(topBarX, topBarY, topBarW, topBarH);
         ctx.textBaseline = "alphabetic"; 
-        
+
         if (bossSpawned) {
-            ctx.fillStyle = "#ff0000"; ctx.fillRect(topBarX, topBarY, topBarW, topBarH); 
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 22px Arial"; ctx.fillText("ALERTA: CHEFE GIGANTE!", canvas.width / 2, topBarY + 24);
+            ctx.fillStyle = "#ff0000"; 
+            ctx.fillRect(topBarX, topBarY, topBarW, topBarH); 
+            ctx.fillStyle = "#ffffff"; 
+            ctx.font = "bold 22px Arial"; 
+            ctx.fillText("ALERTA: CHEFE GIGANTE!", canvas.width / 2, topBarY + 24);
         } else {
             let phasePct = Math.min(1, phaseTimer / phaseDuration);
-            ctx.fillStyle = "#00ffcc"; ctx.fillRect(topBarX, topBarY, topBarW * phasePct, topBarH);
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 22px Arial"; ctx.fillText("FASE " + currentPhase, canvas.width / 2, topBarY + 24);
+            ctx.fillStyle = "#00ffcc"; 
+            ctx.fillRect(topBarX, topBarY, topBarW * phasePct, topBarH);
+            ctx.fillStyle = "#ffffff"; 
+            ctx.font = "bold 22px Arial"; 
+            ctx.fillText("FASE " + currentPhase, canvas.width / 2, topBarY + 24);
         }
 
-        let barW = 500, barH = 30, barX = canvas.width / 2 - barW / 2, barY = canvas.height - 60;
-        ctx.fillStyle = "rgba(34, 34, 34, 0.8)"; ctx.fillRect(barX, barY, barW, barH);
-        ctx.strokeStyle = "#555"; ctx.strokeRect(barX, barY, barW, barH);
+        let barW = 500; 
+        let barH = 30; 
+        let barX = canvas.width / 2 - barW / 2; 
+        let barY = canvas.height - 60;
+        ctx.fillStyle = "rgba(34, 34, 34, 0.8)"; 
+        ctx.fillRect(barX, barY, barW, barH);
+        ctx.strokeStyle = "#555"; 
+        ctx.strokeRect(barX, barY, barW, barH);
 
         let fillPct = 1;
         if (player.powerState === 'active') fillPct = player.powerTimer / player.powerDuration;
@@ -715,28 +1248,43 @@
         ctx.fillRect(barX, barY, barW * fillPct, barH);
 
         if (victory) {
-            ctx.fillStyle = "rgba(0, 50, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#00ffcc"; ctx.font = "bold 70px Arial"; ctx.fillText("VITÓRIA!", canvas.width / 2, canvas.height / 2 - 50);
-            ctx.fillStyle = "#ffeb3b"; ctx.font = "bold 36px Arial"; 
+            ctx.fillStyle = "rgba(0, 50, 0, 0.85)"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#00ffcc"; 
+            ctx.font = "bold 70px Arial"; 
+            ctx.fillText("VITÓRIA!", canvas.width / 2, canvas.height / 2 - 50);
+            ctx.fillStyle = "#ffeb3b"; 
+            ctx.font = "bold 36px Arial"; 
             ctx.fillText("+ 💰 " + coinsGanhasNestaFase + " Moedas!", canvas.width / 2, canvas.height / 2 + 20);
-            ctx.fillStyle = "#ffffff"; ctx.font = "24px Arial"; 
-            ctx.fillText("Toque para avançar à oficina", canvas.width / 2, canvas.height / 2 + 80);
+            ctx.fillStyle = "#ffffff"; 
+            ctx.font = "24px Arial"; 
+            ctx.fillText("Toque para voltar ao menu", canvas.width / 2, canvas.height / 2 + 80);
         }
 
         if (gameOver) {
-            ctx.fillStyle = "rgba(50, 0, 0, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#ff3333"; ctx.font = "bold 70px Arial"; ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
-            ctx.fillStyle = "#ffffff"; ctx.font = "26px Arial"; 
-            ctx.fillText("Toque para voltar à oficina", canvas.width / 2, canvas.height / 2 + 40);
+            ctx.fillStyle = "rgba(50, 0, 0, 0.85)"; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ff3333"; 
+            ctx.font = "bold 70px Arial"; 
+            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
+            ctx.fillStyle = "#ffffff"; 
+            ctx.font = "26px Arial"; 
+            ctx.fillText("Toque para voltar ao menu", canvas.width / 2, canvas.height / 2 + 40);
         }
     }
 
     function loop(timestamp) {
-        if (!isPlaying) return; 
-        let dt = timestamp - lastFrameTime; if (dt > 100) dt = 16; lastFrameTime = timestamp;
+        if (!isPlaying) return;
+        let dt = timestamp - lastFrameTime;
+        if (dt > 100) dt = 16;
+        lastFrameTime = timestamp;
+
         if (!gameOver && !victory) update(dt);
-        draw(); requestAnimationFrame(loop);
+        draw();
+        requestAnimationFrame(loop);
     }
+
+    renderMenu();
 </script>
 </body>
 </html>
